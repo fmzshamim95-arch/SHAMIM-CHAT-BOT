@@ -5,7 +5,7 @@ module.exports.config = {
  name: "helpall",
  version: "1.0.0",
  hasPermssion: 0,
- credits: "─꯭─⃝‌‌➳𝐒𝐇𝐀𝐌𝐈𝐌 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭",
+ credits: "𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐈𝐬𝐥𝐚𝐦",
  description: "Displays all available commands in one page",
  commandCategory: "system",
  usages: "[No args]",
