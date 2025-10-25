@@ -1,15 +1,3 @@
-/**
- * 𝗙𝘂𝘁𝘂𝗿𝗶𝘀𝘁𝗶𝗰 𝗛𝗲𝗹𝗽 𝗠𝗼𝗱𝘂𝗹𝗲
- * Theme: Tech-Panel / Hacker-vibe
- * Signature: multiple places show "𝐒𝐡𝐚𝐦𝐢𝐦 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭"
- *
- * Usage:
- * - Passive: handleEvent reacts to messages starting with "!" (quick view)
- * - Active: run handles explicit "!help", "!help <page|command>" calls
- *
- * Customize: change PREFIX, BOT_NAME, PER_PAGE at top.
- */
-
 export const BOT_NAME = '𝐒𝐡𝐚𝐦𝐢𝐦 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭';
 export const PREFIX = '-';
 export const PER_PAGE = 14;
@@ -203,13 +191,3 @@ export async function run({ api, event, args, getText }) {
     return api.sendMessage({ body: `⚠️ ${BOT_NAME} encountered an error.\n${BOT_NAME}`, threadID: event.threadID, messageID: event.messageID });
   }
 }
-
-/* ------------- NOTES & TIPS -------------
-1) BOT_NAME is used everywhere for heavy branding.
-2) Change PREFIX at top if your bot uses different prefix.
-3) The look is intentionally dense with repeats of BOT_NAME:
-   - header, footer, tip lines, and end-of-card stamps.
-4) If you want 'bn' as default language, set detectLang to return 'bn'.
-5) For emoji-less or purely ASCII variant, remove emojis and adjust boxTop/line sizes.
-6) Want more variants (neon-glow, minimal, emoji-packed)? বলো — করে দিব।
------------------------------------------- */
