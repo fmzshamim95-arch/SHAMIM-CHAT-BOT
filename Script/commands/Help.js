@@ -1,150 +1,149 @@
-const fs = require("fs-extra");
-const request = require("request");
-const path = require("path");
+// Stylish modern help module for a chat-bot
+// Signature appended automatically: "𝐒𝐡𝐚𝐦𝐢𝐦 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭"
 
-module.exports.config = {
-    name: "help",
-    version: "2.0.0",
-    hasPermssion: 0,
-    credits: "─꯭─⃝‌‌➳𝐒𝐇𝐀𝐌𝐈𝐌 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭",
-    description: "Shows all commands with details",
-    commandCategory: "system",
-    usages: "[command name/page number]",
-    cooldowns: 5,
-    envConfig: {
-        autoUnsend: true,
-        delayUnsend: 20
-    }
+// --------- CONFIG ----------
+export const config = {
+  name: 'help',
+  version: '2.0.0',
+  hasPermission: 0,
+  credits: 'Shamim',
+  description: 'Styled help & command list module',
+  commandCategory: 'Utilities',
+  usages: 'help [command|page]',
+  cooldowns: 5,
+  envConfig: {
+    autoUnsend: true,
+    delayUnsend: 20 // seconds
+  }
 };
 
-module.exports.languages = {
-    "en": {
-        "moduleInfo": `╭━━━━━━━━━━━━━━━━╮
-┃ ✨ 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐈𝐍𝐅𝐎 ✨
-┣━━━━━━━━━━━┫
-┃ 🔖 Name: %1
-┃ 📄 Usage: %2
-┃ 📜 Description: %3
-┃ 🔑 Permission: %4
-┃ 👨‍💻 Credit: %5
-┃ 📂 Category: %6
-┃ ⏳ Cooldown: %7s
-┣━━━━━━━━━━━━━━━━┫
-┃ ⚙ Prefix: %8
-┃ 🤖 Bot Name: %9
-┃ 👑 Owner: ➳𝐒𝐇𝐀𝐌𝐈𝐌メ
-╰━━━━━━━━━━━━━━━━╯`,
-        "helpList": "[ There are %1 commands. Use: \"%2help commandName\" to view more. ]",
-        "user": "User",
-        "adminGroup": "Admin Group",
-        "adminBot": "Admin Bot"
-    }
+// --------- LANGUAGES ----------
+export const languages = {
+  en: {
+    moduleInfo: 'Show commands and usage in a stylish format.',
+    helpList: 'Usage: help [command] — shows details for a command',
+    footer: 'Powered by 𝐒𝐡𝐚𝐦𝐢𝐦 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭'
+  },
+  bn: {
+    moduleInfo: 'স্টাইলিশ ভাবে কমান্ড ও ব্যবহার দেখায়।',
+    helpList: 'ব্যবহার: help [command] — নির্দিষ্ট কমান্ডের বিবরণ',
+    footer: 'Powered by 𝐒𝐡𝐚𝐦𝐢𝐦 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭'
+  }
 };
 
-];
+// --------- Helpers ----------
+const pad = (s, n = 2) => String(s).padEnd(n, ' ');
+const sig = '𝐒𝐡𝐚𝐦𝐢𝐦 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭'; // global signature used everywhere
 
+const makeCommandCard = (cmd) => {
+  // cmd is expected to have: name, usages, description, author (optional)
+  const title = `» ${cmd.name.toUpperCase()} «`;
+  const usage = cmd.usages ? `Usage: ${cmd.usages}` : 'Usage: —';
+  const desc = cmd.description ? `Desc : ${cmd.description}` : '';
+  return [title, usage, desc].filter(Boolean).join('\n');
+};
 
-function downloadImages(callback) {
-    const randomUrl = helpImages[Math.floor(Math.random() * helpImages.length)];
-    const filePath = path.join(__dirname, "cache", "help_random.jpg");
+const makeFancyHeader = (title) => {
+  const line = '═'.repeat(Math.max(6, title.length + 4));
+  return `╔${line}╗\n║  ${title}  ║\n╚${line}╝`;
+};
 
-    request(randomUrl)
-        .pipe(fs.createWriteStream(filePath))
-        .on("close", () => callback([filePath]));
+// --------- handleEvent (passive msg watcher) ----------
+export async function handleEvent({ api, event, getText }) {
+  const { body, threadID, messageID } = event;
+  if (!body || typeof body !== 'string') return;
+
+  // Only react to messages that start with prefix '!' (example)
+  if (!body.trim().startsWith('!')) return;
+
+  const parts = body.trim().slice(1).split(/\s+/);
+  if (!parts.length) return;
+
+  const [cmdName] = parts;
+  // If user asked for "help" (passive usage example)
+  if (cmdName.toLowerCase() === 'help') {
+    const reply = [
+      makeFancyHeader('Help (Quick)'),
+      getText('moduleInfo'),
+      '',
+      getText('helpList'),
+      '',
+      `Signature: ${sig}`
+    ].join('\n');
+
+    await api.sendMessage({ body: reply }, threadID, messageID);
+  }
 }
 
-module.exports.handleEvent = function ({ api, event, getText }) {
-    const { commands } = global.client;
-    const { threadID, messageID, body } = event;
+// --------- run (explicit command execution) ----------
+export async function run({ api, event, args, getText }) {
+  const { threadID, messageID } = event;
+  const clientCommands = global?.client?.commands || new Map();
 
-    if (!body || typeof body === "undefined" || body.indexOf("help") != 0) return;  
-    const splitBody = body.slice(body.indexOf("help")).trim().split(/\s+/);  
-    if (splitBody.length < 2 || !commands.has(splitBody[1].toLowerCase())) return;  
+  // If no args -> list commands in pages
+  if (!args || !args[0]) {
+    // collect command names (avoid duplicates)
+    const names = [...new Set(Array.from(clientCommands.keys()))].sort();
+    if (names.length === 0) {
+      return api.sendMessage({ body: `No commands available.\n\n${sig}` }, threadID, messageID);
+    }
 
-    const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};  
-    const command = commands.get(splitBody[1].toLowerCase());  
-    const prefix = threadSetting.PREFIX || global.config.PREFIX;  
+    // Build a paginated / grouped list — here simple grouped blocks
+    const chunks = [];
+    const perPage = 20;
+    for (let i = 0; i < names.length; i += perPage) {
+      const page = names.slice(i, i + perPage)
+        .map((n, idx) => `${pad(i + idx + 1, 3)} • ${n}`)
+        .join('\n');
+      chunks.push(page);
+    }
 
-    const detail = getText("moduleInfo",  
-        command.config.name,  
-        command.config.usages || "Not Provided",  
-        command.config.description || "Not Provided",  
-        command.config.hasPermssion,  
-        command.config.credits || "Unknown",  
-        command.config.commandCategory || "Unknown",  
-        command.config.cooldowns || 0,  
-        prefix,  
-        global.config.BOTNAME || "─꯭─⃝‌‌➳𝐒𝐇𝐀𝐌𝐈𝐌 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭"  
-    );  
+    // Compose a stylish body
+    const body = [
+      makeFancyHeader('Available Commands'),
+      chunks.slice(0, 1).join('\n\n'), // show first page by default
+      '',
+      `Total: ${names.length} commands`,
+      '',
+      `Tip: "${config.usages}"`,
+      '',
+      getText('footer') || sig
+    ].join('\n');
 
-    downloadImages(files => {  
-        const attachments = files.map(f => fs.createReadStream(f));  
-        api.sendMessage({ body: detail, attachment: attachments }, threadID, () => {  
-            files.forEach(f => fs.unlinkSync(f));  
-        }, messageID);  
-    });
-};
+    return api.sendMessage({ body }, threadID, messageID);
+  }
 
-module.exports.run = function ({ api, event, args, getText }) {
-    const { commands } = global.client;
-    const { threadID, messageID } = event;
+  // Else show a specific command detail
+  const q = args[0].toLowerCase();
+  const cmd = clientCommands.get(q);
 
-    const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};  
-    const prefix = threadSetting.PREFIX || global.config.PREFIX;  
+  if (!cmd) {
+    return api.sendMessage({
+      body: `Command "${q}" not found.\n\n${sig}`
+    }, threadID, messageID);
+  }
 
-    if (args[0] && commands.has(args[0].toLowerCase())) {  
-        const command = commands.get(args[0].toLowerCase());  
+  // Create a styled card for the command
+  const card = [
+    makeFancyHeader(`Command: ${cmd.name}`),
+    `Category : ${cmd.commandCategory || '—'}`,
+    `Perm     : ${cmd.hasPermission ?? 0}`,
+    `Cooldown : ${cmd.cooldowns ?? config.cooldowns}s`,
+    cmd.usages ? `Usage    : ${cmd.usages}` : '',
+    cmd.description ? `Description: ${cmd.description}` : '',
+    '',
+    `Credits: ${cmd.credits || config.credits}`,
+    '',
+    getText('footer') || sig
+  ].filter(Boolean).join('\n');
 
-        const detailText = getText("moduleInfo",  
-            command.config.name,  
-            command.config.usages || "Not Provided",  
-            command.config.description || "Not Provided",  
-            command.config.hasPermssion,  
-            command.config.credits || "Unknown",  
-            command.config.commandCategory || "Unknown",  
-            command.config.cooldowns || 0,  
-            prefix,  
-            global.config.BOTNAME || "─꯭─⃝‌‌➳𝐒𝐇𝐀𝐌𝐈𝐌 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭"  
-        );  
+  return api.sendMessage({ body: card }, threadID, messageID);
+}
 
-        downloadImages(files => {  
-            const attachments = files.map(f => fs.createReadStream(f));  
-            api.sendMessage({ body: detailText, attachment: attachments }, threadID, () => {  
-                files.forEach(f => fs.unlinkSync(f));  
-            }, messageID);  
-        });  
-        return;  
-    }  
-
-    const arrayInfo = Array.from(commands.keys())
-        .filter(cmdName => cmdName && cmdName.trim() !== "")
-        .sort();  
-
-    const page = Math.max(parseInt(args[0]) || 1, 1);  
-    const numberOfOnePage = 20;  
-    const totalPages = Math.ceil(arrayInfo.length / numberOfOnePage);  
-    const start = numberOfOnePage * (page - 1);  
-    const helpView = arrayInfo.slice(start, start + numberOfOnePage);  
-
-    let msg = helpView.map(cmdName => `┃ ✪ ${cmdName}`).join("\n");
-
-    const text = `╭━━━━━━━━━━━━━━━━╮
-┃ 📜 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐋𝐈𝐒𝐓 📜
-┣━━━━━━━━━━━━━━━┫
-┃ 📄 Page: ${page}/${totalPages}
-┃ 🧮 Total: ${arrayInfo.length}
-┣━━━━━━━━━━━━━━━━┫
-${msg}
-┣━━━━━━━━━━━━━━━━┫
-┃ ⚙ Prefix: ${prefix}
-┃ 🤖 Bot Name: ${global.config.BOTNAME || "𝐒𝐇𝐀𝐌𝐈𝐌 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭"}
-┃ 👑 Owner: ➳𝐒𝐇𝐀𝐌𝐈𝐌メ
-╰━━━━━━━━━━━━━━━━╯`;
-
-    downloadImages(files => {  
-        const attachments = files.map(f => fs.createReadStream(f));  
-        api.sendMessage({ body: text, attachment: attachments }, threadID, () => {  
-            files.forEach(f => fs.unlinkSync(f));  
-        }, messageID);  
-    });  
-};
+/* 
+Notes:
+- This module is safe: no names/IDs or external image URLs are embedded.
+- Signature "𝐒𝐡𝐚𝐦𝐢𝐦 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭" is appended in every response.
+- You can change prefix (currently '!' assumed in handleEvent) or perPage for listing.
+- If you want a different visual theme (boxy, minimal, emoji-based), বলো — করে দিব।
+*/
